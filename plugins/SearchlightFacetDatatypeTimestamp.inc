@@ -9,13 +9,25 @@ class SearchlightFacetDatatypeTimestamp extends SearchlightFacet {
    */
   function query(&$query) {
     if (isset($this->value)) {
+      $filters = array();
       foreach ($query->search_filter as $key => $filter) {
         if ($filter['field'] === $this->name) {
+          $filters[] = $query->search_filter[$key];
           unset($query->search_filter[$key]);
         }
       }
 
       $range = $query->backend->dateRange($this->value, $this->options['granularity']);
+
+      // Restrict date ranges by time filters.
+      foreach ($filters as $filter) {
+        if ($filter['operator'] == '>' || $filter['operator'] == '>=') {
+          $range['from'] = $filter['args'][0] > $range['from'] ? $filter['args'][0] : $range['from'];
+        }
+        elseif ($filter['operator'] == '<' || $filter['operator'] == '<=') {
+          $range['to'] = $filter['args'][0] < $range['to'] ? $filter['args'][0] : $range['to'];
+        }
+      }
 
       $query->search_filter[] = array(
         'field' => $this->name,
