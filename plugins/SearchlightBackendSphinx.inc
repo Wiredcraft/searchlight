@@ -680,7 +680,7 @@ class SearchlightBackendSphinx extends SearchlightBackend {
     }
 
     // Index information
-    $conf['index']['path'] = $this->drushGetConfigPath() . '/indexes/' . $datasource_id;
+    $conf['index']['path'] = $this->drushGetConfigPath() . '/indexes/' . $datasource->id;
     $conf['index']['docinfo'] = 'extern';
     $conf['index']['mlock'] = 0;
 
