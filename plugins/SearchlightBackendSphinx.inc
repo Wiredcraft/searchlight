@@ -957,13 +957,7 @@ class SearchlightBackendSphinx extends SearchlightBackend {
    * etc. cleanly.
    */
   function sphinxGetTimestamp($datestring, $granularity) {
-    global $user;
-    if (variable_get('configurable_timezones', 1) && $user->uid && strlen($user->timezone)) {
-      $timezone = $user->timezone;
-    }
-    else {
-      $timezone = variable_get('date_default_timezone', 0);
-    }
+    $timezone = date_default_timezone(TRUE);
     switch ($granularity) {
       case 'day':
         return ($timezone * -1) + mktime(0, 0, 0, substr($datestring, 4, 2), substr($datestring, 6, 2), substr($datestring, 0, 4));
