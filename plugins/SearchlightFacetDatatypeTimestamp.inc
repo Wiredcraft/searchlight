@@ -69,7 +69,7 @@ class SearchlightFacetDatatypeTimestamp extends SearchlightFacet {
       foreach ($items as $k => $item) {
         $format = $this->options['date_format'];
         $timestamp = is_numeric($item['id']) ? $item['id'] : strtotime($item['id']);
-        $items[$k]['title'] = format_date($timestamp, 'custom', $format, 'UTC');
+        $items[$k]['title'] = format_date($timestamp, 'custom', $format, date_default_timezone(TRUE));
       }
       return $items;
     }
