@@ -57,6 +57,9 @@ class SearchlightDatasource {
     $handler->override_option('relationships', array());
     $handler->override_option('sorts', array());
 
+    // This view is only supposed to be executed by "sphinxGetOrdinals()", which doesn't need a pager.
+    $handler->override_option('pager', array('type' => 'none', 'options' => array('offset' => 0)));
+
     $fields = array();
 
     // Force the base field onto the view if possible.
