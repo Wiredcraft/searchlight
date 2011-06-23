@@ -194,8 +194,9 @@ class SearchlightDatasource {
         foreach ($view->display as $display) {
           if ($display->display_plugin === 'searchlight_multivalue') {
             $view = views_get_view($view->name);
-            $view->set_display($display->id);
-            $multivalue = $view->execute_display();
+            // XXX.
+            // $view->set_display($display->id);
+            $multivalue = $view->execute_display($display->id);
             $multivalues[$multivalue['name']] = $multivalue;
             $view->destroy();
           }
@@ -215,8 +216,9 @@ class SearchlightDatasource {
       foreach ($view->display as $display) {
         if ($display->display_plugin === 'searchlight_multivalue') {
           $view = views_get_view($view->name);
-          $view->set_display($display->id);
-          $multivalue = $view->execute_display();
+          // XXX.
+          // $view->set_display($display->id);
+          $multivalue = $view->execute_display($display->id);
           $nodeaccess[$multivalue['name']] = $multivalue;
           $view->destroy();
         }
