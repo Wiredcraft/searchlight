@@ -105,7 +105,7 @@ function searchlight_views_data_alter(&$data) {
 
   // A special handler for taxonomy_index table. Taxonomy views integration
   // in D7 sometimes makes use of `taxonomy_term_data` but when used for
-  // arguments, filters, etc. directly queries against `taxonomy_index`. 
+  // arguments, filters, etc. directly queries against `taxonomy_index`.
   if (module_exists('taxonomy')) {
     $data['taxonomy_index']['searchlight_tid'] = array(
       'title' => t('Term ID (Searchlight)'),
@@ -200,35 +200,39 @@ function searchlight_views_default_views() {
   if (!empty($realms)) {
     $view = new view;
     $view->name = 'searchlight_node_access';
+    $view->description = ''; // TODO
     $view->tag = 'searchlight';
     $view->base_table = 'node';
+    $view->human_name = ''; // TODO
+    $view->core = 7;
     $view->api_version = '3.0-alpha1';
-    $handler = $view->new_display('default', 'Default', 'default');
+    $view->disabled = FALSE;
+    // Fields.
+    $fields = array();
+    $fields['nid']['id'] = 'nid';
+    $fields['nid']['table'] = 'node';
+    $fields['nid']['field'] = 'nid';
+    $fields['nid']['label'] = '';
+    $fields['realm']['id'] = 'realm';
+    $fields['realm']['table'] = 'node_access';
+    $fields['realm']['field'] = 'nid';
+    $fields['realm']['label'] = '';
+    /* Display: Master */
+    $handler = $view->new_display('default', 'Master', 'default');
+    $handler->display->display_options['pager']['type'] = 'none';
+    $handler->display->display_options['row_plugin'] = 'fields';
+    $handler->display->display_options['fields'] = $fields;
+    /* Display: Searchlight multivalue */
     foreach ($realms as $realm) {
-      $handler = $view->new_display('searchlight_multivalue', $realm, "searchlight_{$realm}");
-      $handler->override_option('arguments', array());
-      $handler->override_option('filters', array());
-      $handler->override_option('relationships', array());
-      $handler->override_option('sorts', array());
-      $handler->override_option('fields', array(
-        'nid' => array(
-          'id' => 'nid',
-          'table' => 'node',
-          'field' => 'nid',
-          'relationship' => 'none',
-        ),
-        'realm' => array(
-          'id' => 'nid',
-          'table' => 'node_access',
-          'field' => 'nid',
-          'relationship' => 'none',
-          'realm' => $realm,
-        ),
-      ));
-      $handler->override_option('searchlight_multivalue', array(
+      $fields['realm']['realm'] = $realm;
+      $handler = $view->new_display('searchlight_multivalue', $realm, 'searchlight_' . $realm);
+      $handler->display->display_options['pager']['type'] = 'none';
+      $handler->display->display_options['defaults']['fields'] = FALSE;
+      $handler->display->display_options['fields'] = $fields;
+      $handler->display->display_options['searchlight_multivalue'] = array(
         'field' => "node_access_gid_{$realm}",
         'label_field' => "node_access_gid_{$realm}",
-      ));
+      );
     }
     $views[$view->name] = $view;
   }
@@ -239,90 +243,99 @@ function searchlight_views_default_views() {
   if (module_exists('taxonomy')) {
     $view = new view;
     $view->name = 'searchlight_term_data';
+    $view->description = ''; // TODO
     $view->tag = 'searchlight';
     $view->base_table = 'node';
+    $view->human_name = ''; // TODO
+    $view->core = 7;
     $view->api_version = '3.0-alpha1';
-    $handler = $view->new_display('default', 'Default', 'default');
+    $view->disabled = FALSE;
+    // Relationship.
+    $relationships = array();
+    $relationships['term_node_tid']['id'] = 'term_node_tid';
+    $relationships['term_node_tid']['table'] = 'node';
+    $relationships['term_node_tid']['field'] = 'term_node_tid';
+    $relationships['term_node_tid']['required'] = 0;
+    $relationships['term_node_tid']['vocabularies'] = array();
+    // Fields.
+    $fields = array();
+    $fields['nid']['id'] = 'nid';
+    $fields['nid']['table'] = 'node';
+    $fields['nid']['field'] = 'nid';
+    $fields['nid']['label'] = '';
+    $fields['tid']['id'] = 'tid';
+    $fields['tid']['table'] = 'taxonomy_term_data';
+    $fields['tid']['field'] = 'tid';
+    $fields['tid']['relationship'] = 'term_node_tid';
+    $fields['tid']['separator'] = '';
+    $fields['name']['id'] = 'name';
+    $fields['name']['table'] = 'taxonomy_term_data';
+    $fields['name']['field'] = 'name';
+    $fields['name']['relationship'] = 'term_node_tid';
+    /* Display: Master */
+    $handler = $view->new_display('default', 'Master', 'default');
+    $handler->display->display_options['pager']['type'] = 'none';
+    $handler->display->display_options['row_plugin'] = 'fields';
+    $handler->display->display_options['relationships'] = $relationships;
+    $handler->display->display_options['fields'] = $fields;
     /* Display: All terms */
     $handler = $view->new_display('searchlight_multivalue', 'all', 'searchlight_multivalue_all');
-    $handler->override_option('arguments', array());
-    $handler->override_option('relationships', array());
-    $handler->override_option('sorts', array());
-    $handler->override_option('fields', array(
-      'nid' => array(
-        'id' => 'nid',
-        'table' => 'node',
-        'field' => 'nid',
-        'relationship' => 'none',
-      ),
-      'seachlight_tid' => array(
-        'id' => 'searchlight_tid',
-        'table' => 'taxonomy_index',
-        'field' => 'searchlight_tid',
-        'relationship' => 'none',
-        'label' => t('Term ID'),
-      ),
-      'name' => array(
-        'id' => 'name',
-        'table' => 'taxonomy_term_data',
-        'field' => 'name',
-        'relationship' => 'none',
-        'label' => t('All terms'),
-      ),
-    ));
-    $handler->override_option('searchlight_multivalue', array(
-      'field' => 'taxonomy_index_tid',
-      'label_field' => 'taxonomy_term_data_name',
+    $handler->display->display_options['pager']['type'] = 'none';
+    $handler->display->display_options['searchlight_multivalue'] = array(
+      'field' => 'taxonomy_term_data_node_tid',
+      'label_field' => 'taxonomy_term_data_node_name',
       'override' => array(
-        'name' => 'taxonomy_index_tid',
+        'name' => 'taxonomy_term_data_node_tid',
         'label' => t('Taxonomy (all)'),
       ),
-    ));
+    );
+    /* Display: Searchlight multivalue */
     foreach (taxonomy_get_vocabularies() as $vocab) {
-      /* Display: Vocabulary */
+      $relationships['term_node_tid']['vocabularies'] = array($vocab->machine_name => $vocab->machine_name);
+      $fields['name']['label'] = $vocab->name;
       $handler = $view->new_display('searchlight_multivalue', $vocab->name, 'searchlight_multivalue_' . $vocab->machine_name);
-      $handler->override_option('arguments', array());
-      $handler->override_option('relationships', array());
-      $handler->override_option('sorts', array());
-      $handler->override_option('fields', array(
-        'nid' => array(
-          'id' => 'nid',
-          'table' => 'node',
-          'field' => 'nid',
-          'relationship' => 'none',
-        ),
-        'seachlight_tid' => array(
-          'id' => 'searchlight_tid',
-          'table' => 'taxonomy_index',
-          'field' => 'searchlight_tid',
-          'relationship' => 'none',
-          'label' => t('Term ID'),
-        ),
-        'name' => array(
-          'id' => 'name',
-          'table' => 'taxonomy_term_data',
-          'field' => 'name',
-          'relationship' => 'none',
-          'label' => $vocab->name,
-        ),
-      ));
-      $handler->override_option('filters', array(
-        'machine_name' => array(
-          'id' => 'machine_name',
-          'table' => 'taxonomy_vocabulary',
-          'field' => 'machine_name',
-          'value' => array($vocab->machine_name => $vocab->machine_name),
-        ),
-      ));
-      $handler->override_option('searchlight_multivalue', array(
-        'field' => 'taxonomy_index_tid',
-        'label_field' => 'taxonomy_term_data_name',
+      $handler->display->display_options['pager']['type'] = 'none';
+      $handler->display->display_options['defaults']['relationships'] = FALSE;
+      $handler->display->display_options['relationships'] = $relationships;
+      $handler->display->display_options['searchlight_multivalue'] = array(
+        'field' => 'taxonomy_term_data_node_tid',
+        'label_field' => 'taxonomy_term_data_node_name',
         'override' => array(
-          'name' => 'taxonomy_index_tid_' . $vocab->machine_name,
+          'name' => 'taxonomy_term_data_node_tid_' . $vocab->machine_name,
           'label' => $vocab->name,
         ),
-      ));
+      );
     }
+
+    // XXX.
+//    $handler->override_option('searchlight_multivalue', array(
+//      'field' => 'taxonomy_index_tid',
+//      'label_field' => 'taxonomy_term_data_name',
+//      'override' => array(
+//        'name' => 'taxonomy_index_tid',
+//        'label' => t('Taxonomy (all)'),
+//      ),
+//    ));
+
+    // XXX.
+//    foreach (taxonomy_get_vocabularies() as $vocab) {
+//      $handler->override_option('filters', array(
+//        'machine_name' => array(
+//          'id' => 'machine_name',
+//          'table' => 'taxonomy_vocabulary',
+//          'field' => 'machine_name',
+//          'value' => array($vocab->machine_name => $vocab->machine_name),
+//        ),
+//      ));
+//      $handler->override_option('searchlight_multivalue', array(
+//        'field' => 'taxonomy_index_tid',
+//        'label_field' => 'taxonomy_term_data_name',
+//        'override' => array(
+//          'name' => 'taxonomy_index_tid_' . $vocab->machine_name,
+//          'label' => $vocab->name,
+//        ),
+//      ));
+//    }
     $views[$view->name] = $view;
   }
 

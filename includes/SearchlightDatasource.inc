@@ -43,14 +43,47 @@ class SearchlightDatasource {
   function viewInit() {
     views_include('view');
     $this->view = new view;
+    $this->view->name = 'searchlight_datasource'; // TODO
     $this->view->base_table = $this->base_table;
+    $this->view->core = 7;
     $this->view->api_version = '3.0-alpha1';
-    $this->view->new_display('default', 'Default', 'default');
+    $this->view->new_display('default', 'Master', 'default');
     $this->view->set_display('default');
     return $this;
   }
 
   function viewSetHandlers() {
+    // Fields.
+    $fields = array();
+    if ($this->base_field) {
+      $fields[$this->base_field] = array(
+        'id' => $this->base_field,
+        'table' => $this->base_table,
+        'field' => $this->base_field,
+      );
+    }
+    foreach ($this->getFields() as $name => $field) {
+      $data = views_fetch_data($field['table']);
+      if (isset($data[$field['field']]['field'])) {
+        $fields[$name] = array(
+          'id' => $field['name'],
+          'table' => $field['table'],
+          'field' => $field['field'],
+        );
+      }
+    }
+
+    // Handler.
+    $handler = &$this->view->display_handler;
+    $handler->override_option('pager', array('type' => 'none', 'options' => array('offset' => 0)));
+    $handler->override_option('arguments', array());
+    $handler->override_option('filters', array());
+    $handler->override_option('relationships', array());
+    $handler->override_option('sorts', array());
+    $handler->override_option('fields', $fields);
+    return $this;
+
+    // XXX.
     $handler = $this->view->display_handler;
     $handler->override_option('arguments', array());
     $handler->override_option('filters', array());

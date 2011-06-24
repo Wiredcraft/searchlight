@@ -97,7 +97,11 @@ class SearchlightFacet {
         break;
       case 'facets':
         if (!isset($this->value)) {
+//          dpm(xdebug_get_function_stack());
+//          dpm($query);
+//          dpm($this->name);
           $items = $query->get_search_facet($this->name);
+//          dpm($items);
         }
         break;
     }
@@ -173,7 +177,7 @@ class SearchlightFacet {
       $ids = array_keys($items);
 
       $query = views_get_plugin('query', 'views_query');
-      $query->init($this->field['table'], $this->field['field']);
+      $query->init($this->field['table'], $this->field['field'], array());
 
       // Add WHERE condition on item ids.
       $query->add_where(0, "{$this->field['table']}.{$this->field['field']}", $ids, 'IN');
@@ -184,13 +188,15 @@ class SearchlightFacet {
       // Add label field.
       $label_alias = $query->add_field($this->field['label_field']['table'], $this->field['label_field']['field']);
 
-      $result = db_query($query->query(), $ids);
+      dpm((string)$query->query());
+      dpm($ids);
+//      $result = db_query($query->query(), $ids);
       $rows = array();
-      while ($row = db_fetch_object($result)) {
-        $row->{$this->name} = $row->{$this->field['field']};
-        $row->{$this->field['label_field']['name']} = $row->{$label_alias};
-        $rows[$row->{$this->name}] = $row;
-      }
+//      while ($row = db_fetch_object($result)) {
+//        $row->{$this->name} = $row->{$this->field['field']};
+//        $row->{$this->field['label_field']['name']} = $row->{$label_alias};
+//        $rows[$row->{$this->name}] = $row;
+//      }
     }
     // For regular fields attempt to spoof rows with the appropriate field
     // values for rendering by the field handler.
@@ -207,6 +213,7 @@ class SearchlightFacet {
     foreach ($rows as $id => $row) {
       $items[$id]['title'] = strip_tags($this->handler->render($row));
     }
+//    dpm($items);
     return $items;
   }
 

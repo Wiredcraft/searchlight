@@ -751,17 +751,21 @@ class SearchlightBackendSphinx extends SearchlightBackend {
         }
         // Generate multivalue queries.
         else if ($field['usage'] === 'multivalue' && $mva_view = searchlight_build_view($field['view'])) {
-          $query = clone $mva_view->query;
+          $query = &$mva_view->query;
           // Remove any fields that are not the id field or attribute field.
           foreach ($query->fields as $alias => $query_field) {
             if ($query_field['field'] === $mva_view->base_field && $query_field['table'] === $mva_view->base_table) {
               continue;
             }
-            if ($query_field['field'] === $field['field'] && $query_field['table'] === $field['table']) {
+            if ($query_field['field'] === $field['field'] && $query_field['table'] === $field['table_alias']) {
               continue;
             }
             unset($query->fields[$alias]);
           }
+          // For whatever reason, we have to execute the view, to get the right query.
+          // TODO: check build_info.
+          $mva_view->execute();
+          $mva_view->destroy();
           $mva_query = $this->sphinxWriteSQL($query);
           $mva_query = str_replace("\n", " \\\n", trim($mva_query));
           $sql_attr[] = "sql_attr_multi = uint {$field['name']} from query; {$mva_query}";
@@ -796,8 +800,32 @@ class SearchlightBackendSphinx extends SearchlightBackend {
 
   /**
    * Write a SQL query with fully prefixed tables and replaced arguments.
+   *
+   * @see function views_ui_preview().
    */
-  function sphinxWriteSQL($query) {
+  function sphinxWriteSQL($views_query) {
+    $query = $views_query->query();
+    $connection = Database::getConnection();
+    $sql = $connection->prepareQuery((string)$query)->queryString;
+
+    // Because PDO only allows access to prepared queries and not the full
+    // query with placeholders replaced with actual values we need to replace
+    // the placeholders on our own.
+    $replace = array();
+    if ($query instanceof SelectQuery) {
+      foreach ($query->getArguments() as $key => $val) {
+        if (is_array($val)) {
+          $replace[$key] = implode(', ', array_map(array($connection, 'quote'), $val));
+        }
+        else {
+          $replace[$key] = $connection->quote($val);
+        }
+      }
+    }
+    $sql = strtr($sql, $replace);
+    return $sql;
+
+    // XXX.
     $connection = Database::getConnection('default');
     $sql = $connection->prepareQuery( (string) $query->query())->queryString;
 
@@ -843,6 +871,8 @@ class SearchlightBackendSphinx extends SearchlightBackend {
   }
 
   /**
+   * XXX.
+   *
    * Prepare an SQL argument for use in an SQL query.
    * Do *NOT* use this unless you absolutely know how and why you might need
    * it. It is only used in the Searchlight sphinx backend to generate select

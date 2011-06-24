@@ -78,8 +78,10 @@ class searchlight_plugin_display_multivalue extends views_plugin_display {
           'table' => $handler->table,
           'field' => $handler->real_field,
           'name' => $handler->field_alias,
+          'table_alias' => $handler->table_alias,
         );
       }
+      // TODO: ?
       if (!empty($handler->additional_fields)) {
         foreach ($handler->additional_fields as $identifier => $info) {
           $table = $handler->table;
@@ -98,6 +100,7 @@ class searchlight_plugin_display_multivalue extends views_plugin_display {
               'table' => $table,
               'field' => $field,
               'name' => $handler->aliases[$field],
+              'table_alias' => $handler->table_alias,
             );
           }
         }
