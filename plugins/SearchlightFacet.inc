@@ -176,27 +176,25 @@ class SearchlightFacet {
     if ($this->field['usage'] === 'multivalue') {
       $ids = array_keys($items);
 
-      $query = views_get_plugin('query', 'views_query');
-      $query->init($this->field['table'], $this->field['field'], array());
+      $mva_view = searchlight_build_view($this->field['view']);
+      $query = &$mva_view->query;
+      foreach ($query->fields as $alias => $query_field) {
+        if ($query_field['field'] === $this->field['field'] && $query_field['table'] === $this->field['table_alias']) {
+          $query->add_where(0, "{$query_field['table']}.{$query_field['field']}", $ids, 'IN');
+          // We are using $query_field later.
+          // TODO: if empty.
+          break;
+        }
+      }
 
-      // Add WHERE condition on item ids.
-      $query->add_where(0, "{$this->field['table']}.{$this->field['field']}", $ids, 'IN');
-
-      // Add base field.
-      $field_alias = $query->add_field($this->field['table'], $this->field['field']);
-
-      // Add label field.
-      $label_alias = $query->add_field($this->field['label_field']['table'], $this->field['label_field']['field']);
-
-      dpm((string)$query->query());
-      dpm($ids);
-//      $result = db_query($query->query(), $ids);
+      $result = $query->query()->execute();
       $rows = array();
-//      while ($row = db_fetch_object($result)) {
-//        $row->{$this->name} = $row->{$this->field['field']};
-//        $row->{$this->field['label_field']['name']} = $row->{$label_alias};
-//        $rows[$row->{$this->name}] = $row;
-//      }
+      foreach ($result as $row) {
+        $row->{$this->name} = $row->{$query_field['alias']};
+        $rows[$row->{$this->name}] = $row;
+      }
+
+      $mva_view->destroy();
     }
     // For regular fields attempt to spoof rows with the appropriate field
     // values for rendering by the field handler.
