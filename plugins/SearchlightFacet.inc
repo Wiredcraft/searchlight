@@ -97,11 +97,7 @@ class SearchlightFacet {
         break;
       case 'facets':
         if (!isset($this->value)) {
-//          dpm(xdebug_get_function_stack());
-//          dpm($query);
-//          dpm($this->name);
           $items = $query->get_search_facet($this->name);
-//          dpm($items);
         }
         break;
     }
@@ -124,6 +120,12 @@ class SearchlightFacet {
    *   Themed facet item.
    */
   function theme($item, $delta) {
+    // Empty value. E.g. no tags.
+    // TODO: better support.
+    if (empty($item['title'])) {
+      $item['title'] = t('<No value>');
+    }
+
     switch ($delta) {
       case 'active':
         $path = $this->environment->getURLPath();
@@ -211,7 +213,6 @@ class SearchlightFacet {
     foreach ($rows as $id => $row) {
       $items[$id]['title'] = strip_tags($this->handler->render($row));
     }
-//    dpm($items);
     return $items;
   }
 

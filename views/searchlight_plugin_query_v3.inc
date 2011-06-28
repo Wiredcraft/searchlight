@@ -160,25 +160,26 @@ class searchlight_plugin_query extends views_plugin_query_default {
       parent::add_where(0, "FALSE");
     }
 
-    // Views pager initialization.
-    if ($this->search_buildmode === 'search') {
-      // Views 3.x-alpha3 and prior.
-      if (method_exists($this, 'init_pager')) {
-        $this->init_pager($view);
-      }
-      // Views 3.x dev
-      else if (method_exists($view, 'init_pager')) {
-        $view->init_pager();
-      }
-      if (!empty($this->pager)) {
-        if ($this->pager->use_pager()) {
-          $this->pager->set_current_page($view->current_page);
-        }
-        // Let the pager modify the query to add limits.
-        $this->pager->query();
-      }
+    //
+    // Start: same as parent.
+    //
+    // Make the query distinct if the option was set.
+    if (!empty($this->options['distinct'])) {
+      $this->set_distinct();
     }
 
+    // Store the view in the object to be able to use it later.
+    $this->view = $view;
+
+    $view->init_pager();
+
+    // Let the pager modify the query to add limits.
+    $this->pager->query();
+    //
+    // End: same as parent.
+    //
+
+    // TODO: ?
     // Views query token replacements.
     $replacements = module_invoke_all('views_query_substitutions', $view);
 
@@ -214,24 +215,21 @@ class searchlight_plugin_query extends views_plugin_query_default {
 
     if ($this->search_buildmode === 'search') {
       if ($this->search_result) {
-        // Make the query distinct if the option was set.
-        if (!empty($this->options['distinct'])) {
-          $this->set_distinct();
-        }
-
         parent::add_where(0, "{$this->base_table}.{$this->base_field}", $this->search_result['result'], 'IN');
-
-        $view->build_info['query'] = $this->query();
-        $view->build_info['count_query'] = $this->query();
       }
       else {
-        // we did not return any search results. Return no result.
         $this->search_buildmode = 'empty';
       }
     }
-    elseif ($this->search_buildmode === 'default') {
-      parent::build($view);
-    }
+
+    //
+    // Start: same as parent.
+    //
+    $view->build_info['query'] = $this->query();
+    $view->build_info['count_query'] = $this->query(TRUE);
+    //
+    // End: same as parent.
+    //
   }
 
   function execute(&$view) {
