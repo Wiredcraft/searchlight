@@ -59,6 +59,7 @@ function searchlight_views_handlers() {
       'searchlight_handler_sort_search' => array('parent' => 'views_handler_sort'),
       'searchlight_handler_field_node_access' => array('parent' => 'views_handler_field'),
       'searchlight_handler_field_facet_link' => array('parent' => 'views_handler_field'),
+      'searchlight_handler_field_field' => array('parent' => 'views_handler_field_field'),
     ),
   );
 }
@@ -117,6 +118,21 @@ function searchlight_views_data_alter(&$data) {
         'click sortable' => TRUE,
       ),
     );
+  }
+
+  // A special handler for field field.
+  // TODO: node only for now.
+  $base_tables = array('node' => TRUE);
+  foreach ($data as $key_table => $table) {
+    if (empty($table['table']['join']) || !array_intersect_key($table['table']['join'], $base_tables)) {
+      continue;
+    }
+    foreach ($table as $key_column => $column) {
+      if (empty($column['field']['handler']) || $column['field']['handler'] != 'views_handler_field_field') {
+        continue;
+      }
+      $data[$key_table][$key_column]['field']['handler'] = 'searchlight_handler_field_field';
+    }
   }
 
   // OG UID field handler. Needed to allow filtering directly against OG UID.

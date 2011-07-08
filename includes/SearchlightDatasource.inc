@@ -163,7 +163,7 @@ class SearchlightDatasource {
         // Conditions under which we should consider this field a "timestamp".
         if (
           ($column_type === 'int' && strpos($class, 'date') !== FALSE) ||
-          (isset($handler->definition['field_info']['type']) && $handler->definition['field_info']['type'] === 'datestamp')
+          (isset($handler->field_info['type']) && $handler->field_info['type'] === 'datestamp')
         ) {
           return 'timestamp';
         }
@@ -528,17 +528,27 @@ class SearchlightDatasource {
     // with full aliases.
     $this->viewInit()->viewSetHandlers();
     $fields = $this->view->display_handler->get_option('fields');
-    $fields[$field] = array(
-      'id' => $field,
+
+    // TODO: is this a good id?
+    $id = $table . '_' . $field;
+    if (array_key_exists($id, $fields)) {
+      return;
+    }
+
+    $fields[$id] = array(
+      'id' => $id,
       'table' => $table,
       'field' => $field,
       'relationship' => 'none',
     );
-    $this->view->display_handler->set_option('fields', $fields);
+    $this->view->display_handler->override_option('fields', $fields);
     $this->view->build();
 
     // Retrieve field information for storage with datasource.
-    $handler = isset($this->view->field[$field]) ? $this->view->field[$field] : NULL;
+    if (empty($this->view->field[$id]) || !($this->view->field[$id] instanceof views_handler_field)) {
+      return;
+    }
+    $handler = $this->view->field[$id];
 
     // Track fields added so we can provide a default usage based on datatype.
     $fields_added = array();
@@ -555,18 +565,19 @@ class SearchlightDatasource {
         'name' => $field,
       );
     }
-    // Use alias for all other fields.
-    if ($handler) {
-      $fields_added[] = $handler->field_alias;
+    // Use id for all other fields.
+    else {
+      $fields_added[] = $id;
 
-      $this->fields[$handler->field_alias] = array(
-        'label' => $handler->ui_name() . " ({$handler->real_field})",
-        'datatype' => $this->getDatatype($handler, $handler->table, $handler->real_field),
+      $this->fields[$id] = array(
+        'label' => $handler->ui_name() . " ({$handler->field})",
+        'datatype' => $this->getDatatype($handler, $handler->table, $handler->field), // FIXME.
         'table' => $handler->table,
-        'field' => $handler->real_field,
-        'name' => $handler->field_alias,
+        'field' => $handler->field,
+        'name' => $id,
       );
     }
+
     if (!empty($handler->additional_fields)) {
       foreach ($handler->additional_fields as $identifier => $info) {
         $table = $handler->table;
@@ -578,34 +589,35 @@ class SearchlightDatasource {
           $field = $info['field'];
         }
 
-        // Check if we are dealing with a field API field handler.
-        // - Skip the actual field specified by the handler (entity_id).
-        // - Exclude field metadata in additional_fields (language, etid, delta, etc.)
-        $add_field = FALSE;
-        if (isset($handler->definition['field_info'], $handler->definition['entity_tables'])) {
-          $add_field = !in_array($field, array('delta', 'etid', 'language')) && strpos($field, '_format') === FALSE;
+        // Skip something.
+        if (empty($handler->aliases[$field])) {
+          continue;
         }
-        else {
-          $add_field = $field !== $handler->view->base_field || $table !== $handler->view->base_table;
+        if ($field === $handler->view->base_field && $table === $handler->view->base_table) {
+          continue;
         }
-        if ($add_field) {
-          $fields_added[] = $handler->aliases[$field];
+        if ($field === $handler->field && $table === $handler->table) {
+          continue;
+        }
 
-          $this->fields[$handler->aliases[$field]] = array(
-            'label' => $handler->ui_name() . " ({$field})",
-            'datatype' => $this->getDatatype($handler, $table, $field),
-            'table' => $table,
-            'field' => $field,
-            'name' => $handler->aliases[$field],
-          );
-        }
+        $fields_added[] = $handler->aliases[$field];
+
+        // TODO: indicate it is additional and cannot be removed.
+        // TODO: indicate the parent and remove it along with the parent.
+        $this->fields[$handler->aliases[$field]] = array(
+          'label' => $handler->ui_name() . " ({$field})",
+          'datatype' => $this->getDatatype($handler, $table, $field),
+          'table' => $table,
+          'field' => $field,
+          'name' => $handler->aliases[$field],
+        );
       }
     }
 
     if (sizeof($fields_added)) {
       foreach ($fields_added as $name) {
         if (!isset($this->fields[$name]['usage'])) {
-          $this->fields[$name]['usage'] = ($this->fields[$name]['datatype'] === 'text') ? 'content' : 'attribute';
+          $this->fields[$name]['usage'] = ($this->fields[$name]['datatype'] === 'text') ? 'content' : 'attribute'; // FIXME
         }
       }
     }
