@@ -178,6 +178,22 @@ class SearchlightDatasource {
   }
 
   /**
+   * Given a datatype, return a default usage.
+   */
+  function getDefaultUsage($datatype) {
+    if (empty($datatype)) {
+      // TODO
+      return '';
+    }
+    elseif ($datatype == 'text') {
+      return 'content';
+    }
+    else {
+      return 'attribute';
+    }
+  }
+
+  /**
    * Retrieve fields currently enabled for this datasource.
    */
   function getFields() {
@@ -309,9 +325,16 @@ class SearchlightDatasource {
 
     // Add fields
     $field_options = array();
+    // TODO: remove unnecessary fields.
+    // TODO: why do we require grouping.
     $fields = views_fetch_fields($this->base_table, 'field', TRUE);
     foreach ($fields as $field_id => $info) {
       $field_options[$info['group']][$field_id] = $info['title'];
+    }
+    // TODO: relationships - only users for now.
+    $relationships = views_fetch_fields($this->base_table, 'relationship');
+    foreach ($relationships as $rel_id => $relationship) {
+      // TODO
     }
     $form['fields']['new']['#tree'] = TRUE;
     $form['fields']['new']['field'] = array(
@@ -368,16 +391,22 @@ class SearchlightDatasource {
       );
 
       // Usage
-      $default_usage = ($info['datatype'] === 'text') ? 'content' : 'attribute';
-      $default_usage = isset($this->fields[$name]['usage']) ? $this->fields[$name]['usage'] : $default_usage;
-      $form['fields']['fields'][$name]['usage'] = array(
-        '#type' => 'select',
-        '#options' => array(
-          'content' => t('Content'),
-          'attribute' => t('Attribute'),
-        ),
-        '#default_value' => $default_usage,
-      );
+      if (!empty($this->fields[$name]['usage'])) {
+        $form['fields']['fields'][$name]['usage'] = array(
+          '#type' => 'select',
+          '#options' => array(
+            'content' => t('Content'),
+            'attribute' => t('Attribute'),
+          ),
+          '#default_value' => $this->fields[$name]['usage'],
+        );
+      }
+      else {
+        $form['fields']['fields'][$name]['usage'] = array(
+          '#type' => 'markup',
+          '#markup' => t('Meta field'),
+        );
+      }
     }
 
     // @TODO: Handle multivalues.
@@ -550,33 +579,23 @@ class SearchlightDatasource {
     }
     $handler = $this->view->field[$id];
 
-    // Track fields added so we can provide a default usage based on datatype.
-    $fields_added = array();
-
-    // Don't use alias for base field.
-    if ($field === $this->view->base_field) {
-      $fields_added[] = $field;
-
-      $this->fields[$field] = array(
-        'label' => $field,
-        'datatype' => $this->getDatatype(NULL, $table, $field),
-        'table' => $table,
-        'field' => $field,
-        'name' => $field,
-      );
+    // No point to index the base field.
+    // TODO: review.
+    if ($field === $this->view->base_field && $table === $this->view->base_table) {
+      return;
     }
-    // Use id for all other fields.
-    else {
-      $fields_added[] = $id;
 
-      $this->fields[$id] = array(
-        'label' => $handler->ui_name() . " ({$handler->field})",
-        'datatype' => $this->getDatatype($handler, $handler->table, $handler->field), // FIXME.
-        'table' => $handler->table,
-        'field' => $handler->field,
-        'name' => $id,
-      );
-    }
+    $datatype = $this->getDatatype($handler, $handler->table, $handler->field);
+    $usage = $this->getDefaultUsage($datatype);
+
+    $this->fields[$id] = array(
+      'name' => $id,
+      'label' => $handler->ui_name() . " ({$handler->field})",
+      'table' => $handler->table,
+      'field' => $handler->field,
+      'datatype' => $datatype,
+      'usage' => $usage,
+    );
 
     if (!empty($handler->additional_fields)) {
       foreach ($handler->additional_fields as $identifier => $info) {
@@ -600,27 +619,23 @@ class SearchlightDatasource {
           continue;
         }
 
-        $fields_added[] = $handler->aliases[$field];
+        $datatype = $this->getDatatype($handler, $table, $field);
+        $usage = $this->getDefaultUsage($datatype);
 
         // TODO: indicate it is additional and cannot be removed.
         // TODO: indicate the parent and remove it along with the parent.
         $this->fields[$handler->aliases[$field]] = array(
           'label' => $handler->ui_name() . " ({$field})",
-          'datatype' => $this->getDatatype($handler, $table, $field),
+          'name' => $handler->aliases[$field],
           'table' => $table,
           'field' => $field,
-          'name' => $handler->aliases[$field],
+          'datatype' => $datatype,
+          'usage' => $usage,
+          'parent' => $id,
         );
       }
     }
 
-    if (sizeof($fields_added)) {
-      foreach ($fields_added as $name) {
-        if (!isset($this->fields[$name]['usage'])) {
-          $this->fields[$name]['usage'] = ($this->fields[$name]['datatype'] === 'text') ? 'content' : 'attribute'; // FIXME
-        }
-      }
-    }
     return $this->viewInit()->viewSetHandlers();
   }
 
