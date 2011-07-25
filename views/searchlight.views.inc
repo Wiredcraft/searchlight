@@ -271,7 +271,7 @@ function searchlight_views_default_views() {
     $relationships['term_node_tid']['id'] = 'term_node_tid';
     $relationships['term_node_tid']['table'] = 'node';
     $relationships['term_node_tid']['field'] = 'term_node_tid';
-    $relationships['term_node_tid']['required'] = 0;
+    $relationships['term_node_tid']['required'] = 1; // TODO: do we support empty value.
     $relationships['term_node_tid']['vocabularies'] = array();
     // Fields.
     $fields = array();
