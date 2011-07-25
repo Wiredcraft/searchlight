@@ -313,6 +313,8 @@ function searchlight_views_default_views() {
       $handler->display->display_options['pager']['type'] = 'none';
       $handler->display->display_options['defaults']['relationships'] = FALSE;
       $handler->display->display_options['relationships'] = $relationships;
+      $handler->display->display_options['defaults']['fields'] = FALSE;
+      $handler->display->display_options['fields'] = $fields;
       $handler->display->display_options['searchlight_multivalue'] = array(
         'field' => 'taxonomy_term_data_node_tid',
         'label_field' => 'taxonomy_term_data_node_name',
