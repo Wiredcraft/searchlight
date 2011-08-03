@@ -66,10 +66,19 @@ class SearchlightFacetDatatypeTimestamp extends SearchlightFacet {
         break;
     }
     if (!empty($items)) {
+      $timezone = date_default_timezone(TRUE);
+      if (isset($this->options['hide_before'])) {
+        $hide_before = new DateObject($this->options['hide_before'], $timezone);
+        $hide_before = date_format_date($hide_before, 'custom', 'U');
+      }
       foreach ($items as $k => $item) {
-        $format = $this->options['date_format'];
         $timestamp = is_numeric($item['id']) ? $item['id'] : strtotime($item['id']);
-        $items[$k]['title'] = format_date($timestamp, 'custom', $format, date_default_timezone(TRUE));
+        if ($timestamp <= $hide_before) {
+          unset($items[$k]);
+          continue;
+        }
+        $format = $this->options['date_format'];
+        $items[$k]['title'] = format_date($timestamp, 'custom', $format, $timezone);
       }
       return $items;
     }
@@ -83,6 +92,8 @@ class SearchlightFacetDatatypeTimestamp extends SearchlightFacet {
     $options = parent::optionsDefault();
     $options['granularity'] = 'month';
     $options['date_format'] = 'F, Y';
+    // TODO: hide after?
+    $options['hide_before'] = '1970-01-01 00:00:00';
     $options['sort'] = 'date';
     return $options;
   }
@@ -116,6 +127,13 @@ class SearchlightFacetDatatypeTimestamp extends SearchlightFacet {
       '#type' => 'textfield',
       '#size' => 10,
       '#default_value' => $this->options['date_format'],
+    );
+    $form['hide_before'] = array(
+      '#title' => t('Hide date before'),
+      '#description' => t('Hide facet options before a date'),
+      '#type' => 'textfield',
+      '#size' => 20,
+      '#default_value' => $this->options['hide_before'],
     );
   }
 }

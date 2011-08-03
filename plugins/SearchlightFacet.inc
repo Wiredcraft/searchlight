@@ -87,6 +87,8 @@ class SearchlightFacet {
    *     id: The identifier for this facet. eg: 5 (nid), 'blog' (node type)
    *     count: Number of items in resultset that belong to this facet. eg: 20
    *     title: The rendered title for this facet item. eg: 'Blog post'
+   *
+   * TODO: hide empty?
    */
   function render($query, $delta) {
     switch ($delta) {
