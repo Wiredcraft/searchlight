@@ -1,7 +1,7 @@
 // $Id$
 (function ($) {
   Drupal.behaviors.searchlight = {
-    attach: function(context, settiongs) {
+    attach: function(context, settings) {
       $('.searchlight-backend-select:not(.searchlight-processed)', context).each(function() {
         $(this).change(function() {
           var value = $(this).val();
