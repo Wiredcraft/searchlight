@@ -241,9 +241,9 @@ class SearchlightFacet {
     );
     $form['items'] = array(
       '#title' => t('Items to show'),
-      '#type' => 'select',
+      '#type' => 'textfield',
+      '#size' => 5,
       '#default_value' => $this->options['items'],
-      '#options' => drupal_map_assoc(range(1, 20)) + array(0 => t('Show all')),
     );
     $form['sort'] = array(
       '#title' => t('Sort by'),
